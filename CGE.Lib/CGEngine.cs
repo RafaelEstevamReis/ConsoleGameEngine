@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Threading;
 using Simple.CGE.Interfaces;
@@ -63,7 +64,7 @@ namespace Simple.CGE
         public CGEngine()
         {
             EntitiesList = new List<IEntity>();
-            DrawEngine = new DrawEngines.FastDraw();
+            DrawEngine = new DrawEngines.FastDraw(new Size(80, 40), new Size(6, 8));
         }
 
         bool setupCompleted = false;
@@ -82,7 +83,7 @@ namespace Simple.CGE
 
             Running = true;
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
-            DateTime gameStart = DateTime.Now;
+            DateTime gameStart = DateTime.UtcNow;
 
             OnStart?.Invoke(this, EventArgs.Empty);
 
@@ -93,7 +94,7 @@ namespace Simple.CGE
                     Engine = this,
                     LastFrameTime = LastTotalFrameTime,
                     DrawEngine = DrawEngine,
-                    TotalGameTime = DateTime.Now - gameStart,
+                    TotalGameTime = DateTime.UtcNow - gameStart,
                 };
 
                 doPreFrame(sw, data);

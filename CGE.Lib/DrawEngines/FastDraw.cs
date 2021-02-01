@@ -13,11 +13,17 @@ namespace Simple.CGE.DrawEngines
     public class FastDraw : IDrawEngine
     {
         public RectangleF GameBorder { get; private set; }
-        int sWidth;
-        int sHeight;
+        readonly short sWidth;
+        readonly short sHeight;
+        readonly short sFontH;
+        readonly short sFontW;
 
         private char[] screenBuffer;
+        private char[] emptyScreenBuffer;
         private CharInfo[] consoleBuffer;
+
+        private SmallRect cachedScreenRect;
+        private Coord cachedScreenCoord;
 
         #region dll imports
         [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
@@ -32,11 +38,28 @@ namespace Simple.CGE.DrawEngines
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool WriteConsoleOutputW(
-          SafeFileHandle hConsoleOutput,
-          CharInfo[] lpBuffer,
-          Coord dwBufferSize,
-          Coord dwBufferCoord,
-          ref SmallRect lpWriteRegion);
+            SafeFileHandle hConsoleOutput,
+            CharInfo[] lpBuffer,
+            Coord dwBufferSize,
+            Coord dwBufferCoord,
+            ref SmallRect lpWriteRegion);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetConsoleWindowInfo(
+            SafeFileHandle hConsoleOutput,
+            bool bAbsolute,
+            ref SmallRect lpConsoleWindow);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetConsoleScreenBufferSize(
+            SafeFileHandle hConsoleOutput,
+            Coord dwSize);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetConsoleActiveScreenBuffer(SafeFileHandle hConsoleOutput);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetCurrentConsoleFontEx(
+            SafeFileHandle ConsoleOutput,
+            bool MaximumWindow,
+            ref ConsoleFontInfoEx ConsoleCurrentFontEx);
 
         [StructLayout(LayoutKind.Sequential)]
         private struct Coord
@@ -49,6 +72,8 @@ namespace Simple.CGE.DrawEngines
                 this.X = X;
                 this.Y = Y;
             }
+
+            public static readonly Coord Zero = new Coord(0, 0);
         };
 
         [StructLayout(LayoutKind.Explicit, CharSet = CharSet.Unicode)]
@@ -72,17 +97,57 @@ namespace Simple.CGE.DrawEngines
             public short Top;
             public short Right;
             public short Bottom;
+
+            public SmallRect(short Left, short Top, short Right, short Bottom)
+            {
+                this.Left = Left;
+                this.Top = Top;
+                this.Right = Right;
+                this.Bottom = Bottom;
+            }
+
+            public static readonly SmallRect Zero = new SmallRect(0, 0, 0, 0);
+        }
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct ConsoleFontInfoEx
+        {
+            public uint cbSize;
+            public uint nFont;
+            public Coord dwFontSize;
+            public int FontFamily;
+            public int FontWeight;
+
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string FaceName;
         }
         #endregion
 
         SafeFileHandle h;
+
+        public FastDraw(Size WindowSizeInCharacters, Size FontSizeInPixels)
+        {
+            sWidth = (short)WindowSizeInCharacters.Width;
+            sHeight = (short)WindowSizeInCharacters.Height;
+
+            sFontW = (short)FontSizeInPixels.Width;
+            sFontH = (short)FontSizeInPixels.Height;
+        }
+
         public void Setup()
         {
+            h = CreateFile("CONOUT$", 0x40000000, 2, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
+            if (h.IsInvalid) throw new ExternalException("Could not open console");
+
             Console.CursorVisible = false;
-            sWidth = Console.WindowWidth;
-            sHeight = Console.WindowHeight;
+            createConsole();
+
             GameBorder = new RectangleF(0, 0, sWidth, sHeight);
             screenBuffer = new char[sWidth * sHeight];
+            emptyScreenBuffer = new char[sWidth * sHeight];
+            Array.Fill(emptyScreenBuffer, ' ');
+            cachedScreenRect = new SmallRect(0,0,sWidth,sHeight);
+            cachedScreenCoord = new Coord(sWidth, sHeight);
+
             consoleBuffer = new CharInfo[sWidth * sHeight];
             for (int i = 0; i < screenBuffer.Length; i++)
             {
@@ -96,7 +161,43 @@ namespace Simple.CGE.DrawEngines
                 };
             }
 
-            h = CreateFile("CONOUT$", 0x40000000, 2, IntPtr.Zero, FileMode.Open, 0, IntPtr.Zero);
+        }
+
+        private int createConsole()
+        {
+            // Set window to a very low value to allow buffer change
+            SmallRect rect = new SmallRect(0, 0, 1, 1);
+            if (!SetConsoleWindowInfo(h, true, ref rect)) throw new InvalidOperationException("Failed to SetConsoleWindowInfo [1]");
+            // Set new screen buffer
+            Coord coord = new Coord(sWidth, sHeight);
+            if (!SetConsoleScreenBufferSize(h, coord)) throw new InvalidOperationException("Failed to SetConsoleScreenBufferSize");
+            // Set current buffer as Active
+            if(!SetConsoleActiveScreenBuffer(h)) throw new InvalidOperationException("Failed to SetConsoleActiveScreenBuffer");
+            // set font size
+            var font = new ConsoleFontInfoEx()
+            {
+                nFont = 0,
+                dwFontSize = new Coord()
+                {
+                    X = sFontW,
+                    Y = sFontH,
+                },
+                FontFamily = 0, // DONTCARE
+                FontWeight = 400, // FW_NORMAL
+                FaceName = "Consolas",
+            };
+            font.cbSize = (uint)Marshal.SizeOf(font);
+            if (!SetCurrentConsoleFontEx(h, false, ref font)) throw new InvalidOperationException("Failed to SetCurrentConsoleFontEx");
+
+            // get maximum buffer size
+            if (sWidth > Console.LargestWindowWidth) throw new InvalidOperationException("Width is too big for current console");
+            if (sHeight > Console.LargestWindowHeight) throw new InvalidOperationException("Height is too big for current console");
+
+            // return console window size
+            rect = new SmallRect(0, 0, (short)(sWidth - 1), (short)(sHeight - 1));
+            if (!SetConsoleWindowInfo(h, true, ref rect)) throw new InvalidOperationException("Failed to SetConsoleWindowInfo [2]");
+
+            return -1;
         }
 
         public void PreFrame()
@@ -105,7 +206,9 @@ namespace Simple.CGE.DrawEngines
 
         public void DrawStart(FrameData data)
         {
-            for (int i = 0; i < screenBuffer.Length; i++) screenBuffer[i] = ' ';
+            //for (int i = 0; i < screenBuffer.Length; i++) screenBuffer[i] = ' ';
+            //Array.Fill(screenBuffer, ' ');
+            Array.Copy(emptyScreenBuffer, screenBuffer, screenBuffer.Length);
         }
         public void StartFrame(FrameData data, DrawLayers layer) { }
         public void EndFrame(FrameData data, DrawLayers layer) { }
@@ -116,18 +219,10 @@ namespace Simple.CGE.DrawEngines
                 consoleBuffer[i].Char.UnicodeChar = screenBuffer[i];
             }
 
-            SmallRect rect = new SmallRect()
-            {
-                Left = 0,
-                Top = 0,
-                Right = (short)sWidth,
-                Bottom = (short)sHeight
-            };
-
             bool b = WriteConsoleOutputW(h, consoleBuffer,
-              new Coord() { X = rect.Right, Y = rect.Bottom },
-              new Coord() { X = 0, Y = 0 },
-              ref rect);
+              cachedScreenCoord,
+              Coord.Zero,
+              ref cachedScreenRect);
         }
 
         public void PosFrame()
