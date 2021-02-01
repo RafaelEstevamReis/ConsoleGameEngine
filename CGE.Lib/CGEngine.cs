@@ -10,7 +10,7 @@ namespace Simple.CGE
     public class CGEngine
     {
         public bool Running { get; private set; }
-        public bool Paused { get; private set; }
+        public bool Paused { get; set; }
 
         #region Statistics
         public int TargetDrawFps { get; set; } = 30;
@@ -34,8 +34,8 @@ namespace Simple.CGE
             }
         }
 
-        private int totalFrames;
-        public int TotalFrames => totalFrames;
+        private ulong totalFrames; // 1bi years at 10_000fps
+        public ulong TotalFrames => totalFrames;
         #endregion
 
         public event EventHandler<FrameData> OnPreFrame;
@@ -103,6 +103,7 @@ namespace Simple.CGE
                 doPosFrame(sw, data);
             }
         }
+        public void Stop() => Running = false;
 
         private void doPreFrame(System.Diagnostics.Stopwatch sw, FrameData data)
         {
@@ -138,7 +139,7 @@ namespace Simple.CGE
 
             // Allow physics to run
             var entities = EntitiesList.OfType<IPhysicsable>()
-                                   .ToArray(); // complete enumeration
+                                       .ToArray(); // complete enumeration
             foreach (var e in entities)
             {
                 if (Paused && !e.PhysicsOnPaused) continue;
@@ -148,14 +149,15 @@ namespace Simple.CGE
         private void doDraw(FrameData data)
         {
             var entities = EntitiesList.OfType<IDrawable>()
-                                   .ToArray(); // complete enumeration
+                                       .ToArray(); // complete enumeration
 
             data.DrawEngine.DrawStart(data);
 
             // Bkg
             data.DrawEngine.StartFrame(data, DrawLayers.Background);
-            foreach (var e in entities.Where(e => e.Layer == DrawLayers.Background))
+            foreach (var e in entities)
             {
+                if (e.Layer != DrawLayers.Background) continue;
                 if (Paused && !e.DrawOnPaused) continue;
                 e.DoDraw(data);
             }
@@ -163,16 +165,18 @@ namespace Simple.CGE
 
             // fg
             data.DrawEngine.StartFrame(data, DrawLayers.Foreground);
-            foreach (var e in entities.Where(e => e.Layer == DrawLayers.Foreground))
+            foreach (var e in entities)
             {
+                if (e.Layer != DrawLayers.Foreground) continue;
                 if (Paused && !e.DrawOnPaused) continue;
                 e.DoDraw(data);
             }
             data.DrawEngine.EndFrame(data, DrawLayers.Foreground);
             // hud
             data.DrawEngine.StartFrame(data, DrawLayers.HUD);
-            foreach (var e in entities.Where(e => e.Layer == DrawLayers.HUD))
+            foreach (var e in entities)
             {
+                if (e.Layer != DrawLayers.HUD) continue;
                 if (Paused && !e.DrawOnPaused) continue;
                 e.DoDraw(data);
             }
