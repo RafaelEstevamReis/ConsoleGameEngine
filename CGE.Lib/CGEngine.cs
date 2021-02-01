@@ -36,6 +36,7 @@ namespace Simple.CGE
 
         private ulong totalFrames; // 1bi years at 10_000fps
         public ulong TotalFrames => totalFrames;
+        public TimeSpan TotalGameTime { get; private set; }
         #endregion
 
         public event EventHandler<FrameData> OnPreFrame;
@@ -89,12 +90,13 @@ namespace Simple.CGE
 
             while (Running)
             {
+                TotalGameTime = DateTime.UtcNow - gameStart;
                 FrameData data = new FrameData()
                 {
                     Engine = this,
                     LastFrameTime = LastTotalFrameTime,
                     DrawEngine = DrawEngine,
-                    TotalGameTime = DateTime.UtcNow - gameStart,
+                    TotalGameTime = TotalGameTime,
                 };
 
                 doPreFrame(sw, data);
@@ -109,6 +111,7 @@ namespace Simple.CGE
         {
             sw.Restart();
             DrawEngine.PreFrame();
+            OnPreFrame?.Invoke(this, data);
         }
         private void doPhysics(FrameData data)
         {
@@ -187,6 +190,7 @@ namespace Simple.CGE
         private void doPosFrame(System.Diagnostics.Stopwatch sw, FrameData data)
         {
             DrawEngine.PosFrame();
+            OnPosFrame?.Invoke(this, data);
 
             Interlocked.Increment(ref totalFrames);
 

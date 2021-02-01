@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.Diagnostics;
+using System.Drawing;
 using Simple.CGE;
 using Simple.CGE.Helpers;
 using Simple.CGE.Prefab.PrefabDrawable;
@@ -15,8 +16,21 @@ cg.OnSetup += (e, a) =>
                               "Hello World",
                               update));
 };
+cg.OnPosFrame += posFrame;
 cg.Setup();
 cg.Run();
+
+System.Console.WriteLine($"Benchmark ended: {cg.TotalGameTime}, {cg.TotalFrames} was drawn");
+
+void posFrame(object sender, FrameData data)
+{
+    // benchmark modes
+    if (data.TotalGameTime.TotalSeconds > 20)
+    {
+        Debug.WriteLine($"In {data.TotalGameTime}, {data.Engine.TotalFrames} was drawn");
+        data.Engine.Stop();
+    }
+}
 
 void update(FrameData data, UIText text)
 {
