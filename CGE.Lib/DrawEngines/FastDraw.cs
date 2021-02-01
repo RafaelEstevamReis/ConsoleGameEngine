@@ -18,8 +18,6 @@ namespace Simple.CGE.DrawEngines
         readonly short sFontH;
         readonly short sFontW;
 
-        //private char[] screenBuffer;
-        //private char[] emptyScreenBuffer;
         private CharInfo[] consoleBuffer;
         private CharInfo[] emptyConsoleBuffer;
 
@@ -143,9 +141,6 @@ namespace Simple.CGE.DrawEngines
             createConsole();
 
             GameBorder = new RectangleF(0, 0, sWidth, sHeight);
-            //screenBuffer = new char[sWidth * sHeight];
-            //emptyScreenBuffer = new char[sWidth * sHeight];
-            //Array.Fill(emptyScreenBuffer, ' ');
             cachedScreenRect = new SmallRect(0,0,sWidth,sHeight);
             cachedScreenCoord = new Coord(sWidth, sHeight);
 
@@ -208,20 +203,12 @@ namespace Simple.CGE.DrawEngines
 
         public void DrawStart(FrameData data)
         {
-            //for (int i = 0; i < screenBuffer.Length; i++) screenBuffer[i] = ' ';
-            //Array.Fill(screenBuffer, ' ');
-            //Array.Copy(emptyScreenBuffer, screenBuffer, screenBuffer.Length);
             Array.Copy(emptyConsoleBuffer, consoleBuffer, consoleBuffer.Length);
         }
         public void StartFrame(FrameData data, DrawLayers layer) { }
         public void EndFrame(FrameData data, DrawLayers layer) { }
         public void DrawFinish(FrameData data)
         {
-            //for (int i = 0; i < screenBuffer.Length; i++)
-            //{
-            //    consoleBuffer[i].Char.UnicodeChar = screenBuffer[i];
-            //}
-
             bool b = WriteConsoleOutputW(h, consoleBuffer,
               cachedScreenCoord,
               Coord.Zero,
@@ -252,7 +239,6 @@ namespace Simple.CGE.DrawEngines
             int offset = top * (int)GameBorder.Width + left;
             for (int i = 0; i < text.Length; i++)
             {
-                //screenBuffer[i + offset] = text[i];
                 consoleBuffer[i + offset].Char.UnicodeChar = text[i];
             }
         }
