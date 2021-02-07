@@ -136,11 +136,6 @@ namespace Simple.CGE.Helpers
                 }
             }
 
-            //var item = Map.Cast<SearchNode>()
-            //              .Where(n => n.SearchState == SearchNode.NodeState.OpenSet)
-            //              .OrderBy(n => n.FCost)
-            //              .FirstOrDefault();
-
             if (item == null) return true; // finished
 
             if (item.Coordinates == FinishPoint)
