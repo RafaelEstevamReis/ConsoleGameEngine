@@ -20,6 +20,26 @@ namespace Simple.CGE.Helpers
             entity.Position = new PointF(entity.Position.X + Vector.X * time, entity.Position.Y + Vector.Y * time);
         }
 
+        public static bool IsInside(this Point point, Rectangle rectangle)
+        {
+            if (point.X < rectangle.Left) return false;
+            if (point.Y < rectangle.Top) return false;
+
+            if (point.X > rectangle.Right) return false;
+            if (point.Y > rectangle.Bottom) return false;
+
+            return true;
+        }
+        public static bool IsInside(this PointF point, RectangleF rectangle)
+        {
+            if (point.X < rectangle.Left) return false;
+            if (point.Y < rectangle.Top) return false;
+
+            if (point.X > rectangle.Right) return false;
+            if (point.Y > rectangle.Bottom) return false;
+
+            return true;
+        }
         public static bool IntersectWithRectanglePerimeters(RectangleF first, RectangleF second)
         {
             // left border
@@ -35,6 +55,15 @@ namespace Simple.CGE.Helpers
             if (first.Top < second.Bottom && first.Bottom > second.Bottom) return true;
 
             return false;
+        }
+
+        public static float Distance(Point c1, Point c2)
+        {
+            return Distance(new PointF(c1.X, c1.Y), new PointF(c2.X, c2.Y));
+        }
+        public static float Distance(PointF c1, PointF c2)
+        {
+            return (float)Math.Sqrt((c1.X - c2.X) * (c1.X - c2.X) + (c1.Y - c2.Y) * (c1.Y - c2.Y));
         }
     }
 }
