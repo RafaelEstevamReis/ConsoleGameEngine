@@ -1,3 +1,3 @@
 ﻿using CGE.Tests.Samples;
 
-HelloWorld.run();
+AStar.run();
