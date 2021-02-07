@@ -80,8 +80,8 @@ namespace CGE.Tests.Samples
                     char box = box1;
                     if (node.Obstruction) box = box4;
                     else if (node.IsFinishedPath) box = box5;
-                    else if (node.IsOpenSet) box = box2;
-                    else if (node.IsClosedSet) box = box3;
+                    else if (node.SearchState == PathSearch.SearchNode.NodeState.OpenSet) box = box2;
+                    else if (node.SearchState == PathSearch.SearchNode.NodeState.ClosedSet) box = box3;
 
                     if (node.Coordinates == solver.StartPoint) box = 'S';
                     if (node.Coordinates == solver.FinishPoint) box = 'F';

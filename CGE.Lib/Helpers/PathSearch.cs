@@ -22,14 +22,14 @@ namespace Simple.CGE.Helpers
         public Point FinishPoint { get; }
         public bool Finished { get; private set; }
 
-        public PathSearch(Size mapSize, Point start, Point finish )
+        public PathSearch(Size mapSize, Point start, Point finish)
         {
             if (mapSize.Height <= 1) throw new ArgumentException("Map Height should be greater than 1");
             if (mapSize.Width <= 1) throw new ArgumentException("Map Width should be greater than 1");
 
             var rect = new Rectangle(new Point(), mapSize);
-            if(!start.IsInside(rect)) throw new ArgumentException("Start point should be inside the map");
-            if(!finish.IsInside(rect)) throw new ArgumentException("Finish point should be inside the map");
+            if (!start.IsInside(rect)) throw new ArgumentException("Start point should be inside the map");
+            if (!finish.IsInside(rect)) throw new ArgumentException("Finish point should be inside the map");
 
             Map = new SearchNode[mapSize.Width, mapSize.Height];
             this.mapSize = mapSize;
@@ -38,7 +38,7 @@ namespace Simple.CGE.Helpers
 
         }
 
-        public void SetWalkable(char blocked, string walkableMap)
+        public void SetMap(char blocked, string walkableMap)
         {
             if (walkableMap.Length != Map.Length) throw new ArgumentException("The map should be equal sized");
 
@@ -64,7 +64,7 @@ namespace Simple.CGE.Helpers
             }
         }
 
-        public void SetWalkable(IEnumerable< Point> points)
+        public void SetWalkable(IEnumerable<Point> points)
         {
             foreach (var p in points) SetWalkable(p);
         }
@@ -93,9 +93,7 @@ namespace Simple.CGE.Helpers
                     var n = new SearchNode();
 
                     n.Coordinates = new Point(x, y);
-                    n.IsClosedSet = false;
-                    n.IsOpenSet = false;
-                    n.IsNullSet = true;
+                    n.SearchState = SearchNode.NodeState.NotVisited;
                     n.ParentNode = null;
                     n.GCost = int.MaxValue;
                     //n.HCost = int.MaxValue;
@@ -106,7 +104,7 @@ namespace Simple.CGE.Helpers
             }
 
             var startNode = Map[StartPoint.X, StartPoint.Y];
-            startNode.IsOpenSet = true;
+            startNode.SearchState = SearchNode.NodeState.OpenSet;
             startNode.GCost = 0;
             startNode.UpdateHCost(DistanceCost, FinishPoint);
 
@@ -122,7 +120,7 @@ namespace Simple.CGE.Helpers
 
             // get Smaller OpenNode
             var item = Map.Cast<SearchNode>()
-                          .Where(n => n.IsOpenSet)
+                          .Where(n => n.SearchState == SearchNode.NodeState.OpenSet)
                           .OrderBy(n => n.FCost)
                           .FirstOrDefault();
 
@@ -152,10 +150,9 @@ namespace Simple.CGE.Helpers
 
             tryCheckNeighbor(item, item.Coordinates.X - 1, item.Coordinates.Y + 1, isDiagonal: true);
             tryCheckNeighbor(item, item.Coordinates.X, item.Coordinates.Y + 1, isDiagonal: false);
-            tryCheckNeighbor(item, item.Coordinates.X + 1, item.Coordinates.Y + 1, isDiagonal: true); ;
+            tryCheckNeighbor(item, item.Coordinates.X + 1, item.Coordinates.Y + 1, isDiagonal: true);
             // not open anymore
-            item.IsOpenSet = false;
-            item.IsClosedSet = true;
+            item.SearchState = SearchNode.NodeState.ClosedSet;
 
             return false;
         }
@@ -168,44 +165,41 @@ namespace Simple.CGE.Helpers
 
             var node = Map[x, y];
             if (node.Obstruction) return;
-            if (node.IsOpenSet) return;
-            if (node.IsClosedSet) return;
+            if (node.SearchState != SearchNode.NodeState.NotVisited) return;
 
             // set as Open
-            node.IsOpenSet = true;
-            node.IsNullSet = false;
+            node.SearchState = SearchNode.NodeState.OpenSet;
             node.ParentNode = parent;
             node.GCost = parent.GCost + (isDiagonal ? DCost : HVCost);
         }
 
         public class SearchNode
         {
-            public int NodeNumber { get; set; }
+            public enum NodeState
+            {
+                NotVisited,
+                OpenSet,
+                ClosedSet,
+            }
+
             public Point Coordinates { get; set; }
             /// <summary>
             /// Cost from start
             /// </summary>
             public int GCost { get; set; }
             /// <summary>
-            /// Cost from End
+            /// Estimate cost to End
             /// </summary>
             public int HCost { get; set; }
+            /// <summary>
+            /// Total distance estimate
+            /// </summary>
             public int FCost => HCost + GCost;
 
             public SearchNode ParentNode { get; set; }
             public bool Obstruction { get; set; }
-            /// <summary>
-            /// Nor seen nor visited
-            /// </summary>
-            public bool IsNullSet { get; set; }
-            /// <summary>
-            /// Seen and visited
-            /// </summary>
-            public bool IsClosedSet { get; set; }
-            /// <summary>
-            /// Seen but not visited
-            /// </summary>
-            public bool IsOpenSet { get; set; }
+
+            public NodeState SearchState { get; set; }
 
             public bool IsFinishedPath { get; set; }
 
