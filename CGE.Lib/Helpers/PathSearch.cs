@@ -38,7 +38,7 @@ namespace Simple.CGE.Helpers
 
         }
 
-        public void SetMap(char blocked, string walkableMap)
+        public void SetWalkable(char blocked, string walkableMap)
         {
             if (walkableMap.Length != Map.Length) throw new ArgumentException("The map should be equal sized");
 
@@ -119,10 +119,27 @@ namespace Simple.CGE.Helpers
             if (Finished) return true;
 
             // get Smaller OpenNode
-            var item = Map.Cast<SearchNode>()
-                          .Where(n => n.SearchState == SearchNode.NodeState.OpenSet)
-                          .OrderBy(n => n.FCost)
-                          .FirstOrDefault();
+
+            SearchNode item = null;
+            foreach (var n in Map)
+            {
+                if (n.SearchState == SearchNode.NodeState.OpenSet)
+                {
+                    if (item == null)
+                    {
+                        item = n;
+                    }
+                    else
+                    {
+                        if (item.FCost < n.FCost) item = n;
+                    }
+                }
+            }
+
+            //var item = Map.Cast<SearchNode>()
+            //              .Where(n => n.SearchState == SearchNode.NodeState.OpenSet)
+            //              .OrderBy(n => n.FCost)
+            //              .FirstOrDefault();
 
             if (item == null) return true; // finished
 
