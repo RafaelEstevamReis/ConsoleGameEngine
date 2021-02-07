@@ -47,6 +47,7 @@ namespace Simple.CGE
         List<IEntity> EntitiesList { get; }
 
         public IDrawEngine DrawEngine { get; set; }
+        public bool ShowDataOnTitle { get; set; }
 
         public void AddEntities(params IEntity[] entitiesToAdd) => AddEntities((IEnumerable<IEntity>)entitiesToAdd);
         public void AddEntities(IEnumerable<IEntity> entitiesToAdd) 
@@ -63,9 +64,12 @@ namespace Simple.CGE
         }
 
         public CGEngine()
+            : this(new DrawEngines.FastDraw(new Size(100, 100), new Size(6, 6)))
+        { }
+        public CGEngine(IDrawEngine drawEngine)
         {
             EntitiesList = new List<IEntity>();
-            DrawEngine = new DrawEngines.FastDraw(new Size(80, 40), new Size(6, 8));
+            DrawEngine = drawEngine;
         }
 
         bool setupCompleted = false;
@@ -191,6 +195,11 @@ namespace Simple.CGE
         {
             DrawEngine.PosFrame();
             OnPosFrame?.Invoke(this, data);
+
+            if (ShowDataOnTitle)
+            {
+                Console.Title = $"ConsoleEngine  GT:{TotalGameTime:hh\\:mm\\:ss} TF:{TotalFrames} FPS: {CurrentFPS:N1}";
+            }
 
             Interlocked.Increment(ref totalFrames);
 
