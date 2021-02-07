@@ -221,6 +221,10 @@ namespace Simple.CGE.DrawEngines
 
         public void DrawLine(int left, int top, string text)
         {
+            DrawLine(left, top, text.ToCharArray());
+        }
+        public void DrawLine(int left, int top, char[] text)
+        {
             if (top < 0) return;
             if (top >= GameBorder.Height) return;
             if (text.Length <= -left) return;
@@ -246,15 +250,23 @@ namespace Simple.CGE.DrawEngines
         {
             if (!rectangle.IntersectsWith(GameBorder)) return;
 
-            var linesToPrint = getLines(data, (int)rectangle.Width).ToArray();
-
-            for (int i = 0; i < linesToPrint.Length; i++)
+            char[] line = new char[(int)rectangle.Width];
+            for (int y = 0; y < rectangle.Height; y++)
             {
-                int top = i + (int)rectangle.Top;
-                int left = 0 + (int)rectangle.Left;
-
-                DrawLine(left, top, linesToPrint[i]);
+                int offset = y * line.Length;
+                Array.Copy(data, offset, line, 0, (int)rectangle.Width);
+                DrawLine((int)rectangle.Left, y + (int)rectangle.Top, line);
             }
+
+            //var linesToPrint = getLines(data, (int)rectangle.Width).ToArray();
+            //
+            //for (int i = 0; i < linesToPrint.Length; i++)
+            //{
+            //    int top = i + (int)rectangle.Top;
+            //    int left = 0 + (int)rectangle.Left;
+            //
+            //    DrawLine(left, top, linesToPrint[i]);
+            //}
         }
         IEnumerable<string> getLines(char[] data, int width)
         {
