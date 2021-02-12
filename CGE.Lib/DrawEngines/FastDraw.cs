@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using Microsoft.Win32.SafeHandles;
 using Simple.CGE.Interfaces;
 
@@ -157,7 +154,6 @@ namespace Simple.CGE.DrawEngines
                     }
                 };
             }
-
         }
 
         private int createConsole()
@@ -199,6 +195,7 @@ namespace Simple.CGE.DrawEngines
 
         public void PreFrame()
         {
+            
         }
 
         public void DrawStart(FrameData data)
@@ -218,17 +215,16 @@ namespace Simple.CGE.DrawEngines
         public void PosFrame()
         {
         }
-
         public void DrawLine(int left, int top, string text)
         {
             DrawLine(left, top, text.ToCharArray());
         }
-        public void DrawLine(int left, int top, char[] text)
+        private void DrawLine(int left, int top, char[] text)
         {
             if (top < 0) return;
-            if (top >= GameBorder.Height) return;
+            if (top >= sHeight) return;
             if (text.Length <= -left) return;
-            if (left >= GameBorder.Width) return;
+            if (left >= sWidth) return;
 
             if (left < 0)
             {
@@ -236,11 +232,11 @@ namespace Simple.CGE.DrawEngines
                 left = 0;
                 text = text[skip..];
             }
-            if (left + text.Length > GameBorder.Width)
+            if (left + text.Length > sWidth)
             {
-                text = text[..((int)GameBorder.Width - left)];
+                text = text[..(sWidth - left)];
             }
-            int offset = top * (int)GameBorder.Width + left;
+            int offset = top * sWidth + left;
             for (int i = 0; i < text.Length; i++)
             {
                 consoleBuffer[i + offset].Char.UnicodeChar = text[i];
@@ -257,33 +253,6 @@ namespace Simple.CGE.DrawEngines
                 Array.Copy(data, offset, line, 0, (int)rectangle.Width);
                 DrawLine((int)rectangle.Left, y + (int)rectangle.Top, line);
             }
-
-            //var linesToPrint = getLines(data, (int)rectangle.Width).ToArray();
-            //
-            //for (int i = 0; i < linesToPrint.Length; i++)
-            //{
-            //    int top = i + (int)rectangle.Top;
-            //    int left = 0 + (int)rectangle.Left;
-            //
-            //    DrawLine(left, top, linesToPrint[i]);
-            //}
         }
-        IEnumerable<string> getLines(char[] data, int width)
-        {
-            var sb = new StringBuilder();
-
-            foreach (var d in data)
-            {
-                sb.Append(d);
-
-                if (sb.Length == width)
-                {
-                    yield return sb.ToString();
-                    sb.Clear();
-                }
-            }
-            if (sb.Length > 0) yield return sb.ToString();
-        }
-
     }
 }
