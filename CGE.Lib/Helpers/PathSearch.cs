@@ -95,7 +95,7 @@ namespace Simple.CGE.Helpers
                     n.Coordinates = new Point(x, y);
                     n.SearchState = SearchNode.NodeState.NotVisited;
                     n.ParentNode = null;
-                    n.GCost = int.MaxValue;
+                    //n.GCost = int.MaxValue;
                     //n.HCost = int.MaxValue;
                     n.UpdateHCost(DistanceCost, FinishPoint);
 
@@ -123,17 +123,9 @@ namespace Simple.CGE.Helpers
             SearchNode item = null;
             foreach (var n in Map)
             {
-                if (n.SearchState == SearchNode.NodeState.OpenSet)
-                {
-                    if (item == null)
-                    {
-                        item = n;
-                    }
-                    else
-                    {
-                        if (item.FCost < n.FCost) item = n;
-                    }
-                }
+                if (n.SearchState != SearchNode.NodeState.OpenSet) continue;
+
+                if (item == null || item.FCost > n.FCost) item = n;
             }
 
             if (item == null) return true; // finished
@@ -198,15 +190,15 @@ namespace Simple.CGE.Helpers
             /// <summary>
             /// Cost from start
             /// </summary>
-            public int GCost { get; set; }
+            public float GCost { get; set; }
             /// <summary>
             /// Estimate cost to End
             /// </summary>
-            public int HCost { get; set; }
+            public float HCost { get; set; }
             /// <summary>
             /// Total distance estimate
             /// </summary>
-            public int FCost => HCost + GCost;
+            public float FCost => HCost + GCost;
 
             public SearchNode ParentNode { get; set; }
             public bool Obstruction { get; set; }
@@ -217,7 +209,7 @@ namespace Simple.CGE.Helpers
 
             public void UpdateHCost(int weight, Point finishPoint)
             {
-                HCost = (int)(weight * EntityHelper.Distance(Coordinates, finishPoint));
+                HCost = weight * EntityHelper.Distance(Coordinates, finishPoint);
             }
         }
     }
