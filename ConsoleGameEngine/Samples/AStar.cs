@@ -10,15 +10,23 @@ namespace CGE.Tests.Samples
     {
         internal static void run()
         {
-            CGEngine cg = new CGEngine(new FastDraw(new Size(65, 65), new Size(7, 7)));
+            CGEngine cg = new CGEngine(new FastDraw(new Size(300, 300), new Size(2, 2)));
             cg.OnSetup += (e, a) =>
             {
-                cg.TargetDrawFps = 10;
-                cg.AddEntities(new Maze(new Size(10, 10)));
+                cg.TargetDrawFps = 0;
+                cg.AddEntities(new Maze(new Size(100, 100)));
                 cg.ShowDataOnTitle = true; 
             };
+            cg.OnPosFrame += Cg_OnPosFrame;
             cg.Setup();
             cg.Run();
+        }
+        private static void Cg_OnPosFrame(object sender, FrameData e)
+        {
+            if (e.Engine.TotalFrames >= 1000)
+            {
+                e.Engine.Stop();
+            }
         }
     }
     class Maze : IDrawable, IPhysicsable
@@ -38,26 +46,32 @@ namespace CGE.Tests.Samples
         public Maze(Size size)
         {
             Size = size;
-            solver = new PathSearch(size, new Point(1, 1), new Point(8, 8));
+            solver = new PathSearch(size, new Point(1, 1), new Point(98, 98));
             solver.Setup();
 
-            solver.SetWalkable('X',
-                "----------" +
-                "-S--X-----" +
-                "----X-----" +
-                "XXXXX-----" +
-                "----------" +
-                "----XXXXXX" +
-                "----------" +
-                "----X--XXX" +
-                "----X---F-" +
-                "----X-----");
+            for (int i = 0; i < 97; i++) solver.SetNotWalkable(new Point(i, 20));
+            for (int i = 3; i < 100; i++) solver.SetNotWalkable(new Point(i, 40));
+
+            for (int i = 0; i < 97; i++) solver.SetNotWalkable(new Point(i, 60));
+            for (int i = 3; i < 100; i++) solver.SetNotWalkable(new Point(i, 70));
+
+            //solver.SetWalkable('X',
+            //    "----------" +
+            //    "-S--X-----" +
+            //    "----X-----" +
+            //    "XXXXX-----" +
+            //    "----------" +
+            //    "----XXXXXX" +
+            //    "----------" +
+            //    "----X--XXX" +
+            //    "----X---F-" +
+            //    "----X-----");
         }
 
         public void DoDraw(FrameData data)
         {
-            int nodeSize = 4;
-            int clearance = 6;
+            int nodeSize = 2;
+            int clearance = 3;
 
             char box1 = '-';
 
